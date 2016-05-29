@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="ant demo" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+	<property file="build.properties" />
+
+	<taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml">
+		<classpath>
+			<pathelement location="${lib.path}/ivy-2.4.0.jar" />
+		</classpath>
+	</taskdef>
+
+	<target name="resolve">
+		<property name="ivy.default.ivy.user.dir" value="${ANT_HOME}">
+		</property>
+		<ivy:retrieve pattern="${lib.path}/[artifact]-[revision].[ext]" conf="junit" />
+		<ivy:retrieve pattern="${lib.path}/[artifact]-[revision].[ext]" conf="spring" />
+	</target>
+
+	<target name="clearReport">
+		<delete dir="${report.path}"></delete>
+	</target>
+	<target name="init" depends="resolve">
+		<mkdir dir="${desc}/classes" />
+		<mkdir dir="${report.path}"/>
+	</target>
+
+    <!--配置运行时classpath --> 
+    <path id="classpath.run"> 
+    	<pathelement path="${desc}/classes"/>
+        <fileset dir="${lib.path}"> 
+           <include name="*.jar"/> 
+        </fileset> 
+    </path>
+	
+	<target name="clear">
+		<echo>------------clear  classes-----------</echo>
+		<delete dir="${desc}/classes"></delete>
+	</target>
+	<target name="compile-src" depends="clear,init">
+		<javac srcdir="${src.main}" destdir="${desc}/classes" encoding="utf-8" deprecation="on" optimize="on" failonerror="true">
+			<classpath refid="classpath.run"/>
+		</javac>
+		<copy todir="${desc}/classes" overwrite="true">
+			<fileset dir="${src.main}">
+				<include name="*.xml"/>
+				<include name="*.properties"/>
+			</fileset>
+		</copy>
+	</target>
+	<target name="compile-test" depends="compile-src">
+		<javac srcdir="${src.test}" destdir="${desc}/classes" encoding="utf-8" debug="on" deprecation="on" optimize="on" failonerror="true">
+			<classpath refid="classpath.run"/>
+		</javac>
+		<copy todir="${desc}/classes" overwrite="true">
+			<fileset dir="${src.main}">
+				<include name="*.xml"/>
+				<include name="*.properties"/>
+			</fileset>
+		</copy>
+	</target>
+	<!-- 执行指定的单元测试类 -->
+	<target name="testReport" depends="compile-test">
+		<mkdir dir="${report.path}"/>
+		<junit printsummary="true" fork="true">        
+		    <formatter type="xml" usefile="true"/>  
+				<classpath refid="classpath.run"/>
+				<test name="com.iciyun.test.DemoTest" todir="${report.path}" fork="true"></test>
+		</junit>
+	</target>
+	<!-- 批量执行junit单元测试 -->
+	<target name="testBatch" depends="compile-test">
+		<junit printsummary="true" fork="true">        
+		    <formatter type="xml" usefile="true"/>  
+			<classpath refid="classpath.run"/>
+			<batchtest fork="on" todir="${report.path}" haltonfailure="no">
+				<fileset dir="${desc}/classes">
+					<include name="**/*Test.class"/>
+				</fileset>
+			</batchtest>	
+		</junit>
+		 <!-- 产生单元测试报表文档 -->
+		 <junitreport todir="${report.path}">
+		     <fileset dir="${report.path}">
+		         <include name="TEST-*.xml" />
+		     </fileset>
+		     <report format="frames" todir="${report.path}" />
+		 </junitreport>
+	</target>
+	
+	<target name="war" depends="clear,init,compile-src">
+		<echo>-----------------------开始打包----------------------------</echo>
+		<delete file="*.war"></delete>
+        <tstamp> 
+            <format property="DSTAMP" pattern="yyyyMMdd" locale="zh"/> 
+            <format property="TSTAMP" pattern="HHmmss" locale="zh"/> 
+        </tstamp> 
+		<war destfile="${webapp.name}_${DSTAMP}_${TSTAMP}.war" basedir="${build.path}" webxml="${build.path}/WEB-INF/web.xml"/> 
+	</target>
+	<target name="clear-war">
+		<delete file="*.war"></delete>
+	</target>
+</project>
