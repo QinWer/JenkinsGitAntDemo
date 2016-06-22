@@ -16,6 +16,7 @@ public class LoginController {
 	
 	@RequestMapping("/toLogin")
 	public String toLogin(){
+
 		System.out.println("去登录页面！！！");
 		return "login";
 	}
